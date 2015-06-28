@@ -1,0 +1,99 @@
+#!/usr/bin/ruby
+# -*- mode: Ruby; -*-
+#
+#    enchaine - apply a blockchain aesthetic to Markdown titles
+#    Copyright (C) 2015 Rob Myers
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+require 'getoptlong'
+require 'enchaine'
+
+def showHelp
+  STDERR.puts """Usage: enchaine [OPTION] ...
+Replace Markdown h1 headings with hashes.
+
+  -h, --help         Display this message and quit.
+  -D, --difficulty   Set the prefix that hashes must match.
+  -d, --digest       The digest class - sha256, rmd160, hmac, md5.
+  -g, --genesis      The initial value for cumulative hashes.
+  -f, --format       The hash format - binary, hex, base58, base64, bip39(ish).
+  -m, --method       The hash method - simple, cumulative, difficulty,
+                                       difficultynonce, block, entropy.
+  -t, --truncate     How many bytes to truncate the hash to.
+  -w, --which        Use the 'title' or the 'content' as the hash source.
+  -c, --in           The path of the file to read as input.
+  -o, --out          The path of the file to write output to.
+
+Reads from stdin and outputs to stdout unless --in and/or --out are used."""
+end
+
+opts = GetoptLong.new(
+  [ '--help', '-h', GetoptLong::NO_ARGUMENT ],
+  [ '--difficulty', '-D', GetoptLong::OPTIONAL_ARGUMENT ],
+  [ '--genesis', '-g', GetoptLong::OPTIONAL_ARGUMENT ],
+  [ '--digest', '-d', GetoptLong::OPTIONAL_ARGUMENT ],
+  [ '--format', '-f', GetoptLong::OPTIONAL_ARGUMENT ],
+  [ '--method', '-m', GetoptLong::OPTIONAL_ARGUMENT ],
+  [ '--truncate', '-t', GetoptLong::OPTIONAL_ARGUMENT ],
+  [ '--which', '-w', GetoptLong::OPTIONAL_ARGUMENT ],
+  [ '--in', '-c', GetoptLong::OPTIONAL_ARGUMENT ],
+  [ '--out', '-o', GetoptLong::OPTIONAL_ARGUMENT ],
+)
+
+e = Enchaine.new()
+
+opts.each do |opt, arg|
+  case opt
+  when '--help'
+    showHelp
+    exit
+  when '--difficulty'
+    e.difficulty = arg
+  when '--genesis'
+    e.genesis = arg
+  when '--digest'
+    e.setDigest arg
+  when '--format'
+    e.setFormat arg
+  when '--method'
+    e.setMethod arg
+  when '--truncate'
+    e.truncate = arg.to_i
+  when '--which'
+    if arg
+      e.setWhich arg
+    end
+  when '--in'
+    if arg
+      if ! File.file?(arg)
+        STDERR.puts "Input file doesn't exist."
+        exit -1
+      end
+      STDIN.reopen(File.open(arg, 'r'))
+    end
+  when '--out'
+    if arg
+      if File.file?(arg)
+        STDERR.puts "Output file already exists."
+        exit -1
+      end
+      STDOUT.reopen(File.open(arg, 'w'))
+    end
+  end
+end
+
+input = STDIN.read
+output = e.enchaine input
+STDOUT.puts output
