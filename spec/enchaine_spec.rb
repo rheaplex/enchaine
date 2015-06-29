@@ -11,7 +11,7 @@ describe Enchaine do
       expect(output.count '#').to eq 5
     end
     it 'converts header properly' do
-      expect(output.lines.first).to eq first
+      expect(output.lines.first.strip).to eq first
     end
   end
 end
